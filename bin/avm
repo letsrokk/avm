@@ -10,8 +10,15 @@ VERSIONS_DIR=$AVM_PREFIX/avm/versions
 UP=$'\033[A'
 DOWN=$'\033[B'
 
+APPIUM_BIN="bin/appium.js"
+
 test -d $VERSIONS_DIR || mkdir -p $VERSIONS_DIR
 
+reset_bin_path(){
+  local version=$1
+  test -f $VERSIONS_DIR/$version/node_modules/appium/$APPIUM_BIN && return
+  test -f $VERSIONS_DIR/$version/node_modules/appium/build/lib/appium.js && APPIUM_BIN=build/lib/main.js
+}
 #
 # Log <type> <msg>
 #
@@ -222,13 +229,14 @@ is_ok() {
 
 activate() {
   local version=$1
+  reset_bin_path $version
   check_current_version
   if test "$version" != "$active"; then
     local dir=$VERSIONS_DIR/$version
     echo $active > $VERSIONS_DIR/.prev
     mkdir -p $AVM_PREFIX/bin
     rm -f $AVM_PREFIX/bin/appium
-    ln -s $dir/node_modules/appium/bin/appium.js $AVM_PREFIX/bin/appium
+    ln -s $dir/node_modules/appium/$APPIUM_BIN $AVM_PREFIX/bin/appium
   fi
 }
 
@@ -252,7 +260,7 @@ activate_previous() {
 
 install_appium() {
   local version=${1#v}
-  
+
   local dots=`echo $version | sed 's/[^.]*//g'`
   local dir=$VERSIONS_DIR/$version
 
@@ -306,7 +314,8 @@ remove_versions() {
 display_bin_path_for_version() {
   test -z $1 && abort "version required"
   local version=${1#v}
-  local bin=$VERSIONS_DIR/$version/node_modules/appium/bin/appium.js
+  reset_bin_path $version
+  local bin=$VERSIONS_DIR/$version/node_modules/appium/$APPIUM_BIN
   if test -f $bin; then
     printf $bin
   else
@@ -321,7 +330,8 @@ display_bin_path_for_version() {
 execute_with_version() {
   test -z $1 && abort "version required"
   local version=${1#v}
-  local bin=$VERSIONS_DIR/$version/node_modules/appium/bin/appium.js
+  reset_bin_path $version
+  local bin=$VERSIONS_DIR/$version/node_modules/appium/$APPIUM_BIN
 
   shift # remove version
 
